@@ -1,0 +1,49 @@
+---
+- name: Instalar Docker e subir container Nginx
+  hosts: rocky_vm
+  become: yes
+
+  tasks:
+    - name: Atualizar pacotes do sistema
+      dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+
+    - name: Instalar dependências necessárias
+      dnf:
+        name:
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+        state: present
+
+    - name: Adicionar repositório Docker
+      command: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+      args:
+        creates: /etc/yum.repos.d/docker-ce.repo
+
+    - name: Instalar Docker
+      dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Iniciar e habilitar Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Subir container Nginx
+      community.docker.docker_container:
+        name: nginx
+        image: nginx:latest
+        state: started
+        restart_policy: always
+        ports:
+          - "80:80"
+          - "443:443"
